@@ -2,11 +2,6 @@
 on:
   schedule: daily
   workflow_dispatch:
-    inputs:
-      dry_run:
-        description: 'Skip issue creation — call noop instead. Use for testing.'
-        type: boolean
-        default: false
 permissions:
   contents: read
   issues: none
@@ -43,7 +38,7 @@ jobs:
       - name: Set time window
         run: echo "SINCE=$(date -u -d '24 hours ago' '+%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_ENV"
 
-      - name: Fetch Category 1 — Observing AI agents (10 repos)
+      - name: Fetch Category 1 - Observing AI agents (10 repos)
         run: |
           SEARCH_DATE=$(date -u -d '24 hours ago' '+%Y-%m-%d')
           for REPO in \
@@ -71,7 +66,7 @@ jobs:
               || echo "FAILED:${REPO}" >> "${PREFETCH_DIR}/failures.log"
           done
 
-      - name: Fetch Category 2 — Telemetry for coding agents (6 repos)
+      - name: Fetch Category 2 - Telemetry for coding agents (6 repos)
         run: |
           SEARCH_DATE=$(date -u -d '24 hours ago' '+%Y-%m-%d')
           for REPO in \
@@ -95,7 +90,7 @@ jobs:
               || echo "FAILED:${REPO}" >> "${PREFETCH_DIR}/failures.log"
           done
 
-      - name: Fetch Category 3 — OpenTelemetry standards (4 repos)
+      - name: Fetch Category 3 - OpenTelemetry standards (4 repos)
         run: |
           SEARCH_DATE=$(date -u -d '24 hours ago' '+%Y-%m-%d')
           for REPO in \
@@ -117,7 +112,7 @@ jobs:
               || echo "FAILED:${REPO}" >> "${PREFETCH_DIR}/failures.log"
           done
 
-      - name: Fetch Category 4 — Observability Platform Tools (4 repos)
+      - name: Fetch Category 4 - Observability Platform Tools (4 repos)
         run: |
           SEARCH_DATE=$(date -u -d '24 hours ago' '+%Y-%m-%d')
           for REPO in \
@@ -142,56 +137,58 @@ jobs:
       - name: Aggregate prefetch data
         run: |
           python3 << 'PYEOF'
-          import json, os, glob
+          import glob
+          import json
+          import os
 
           RELEASE_BODY_LIMIT = 4000
           ISSUE_BODY_LIMIT = 2500
 
           def compact_text(value, limit):
-            text = (value or '').strip()
-            truncated = len(text) > limit
-            if truncated:
-              text = text[:limit].rstrip() + '\n...[truncated]'
-            return text, len(value or ''), truncated
+              text = (value or '').strip()
+              truncated = len(text) > limit
+              if truncated:
+                  text = text[:limit].rstrip() + '\n...[truncated]'
+              return text, len(value or ''), truncated
 
           def compact_release(release):
-            body, body_length, body_truncated = compact_text(
-              release.get('body'), RELEASE_BODY_LIMIT
-            )
-            return {
-              'name': release.get('name') or release.get('tag_name') or '',
-              'tagName': release.get('tag_name') or release.get('tagName') or '',
-              'publishedAt': release.get('published_at') or release.get('publishedAt') or '',
-              'body': body,
-              'bodyLength': body_length,
-              'bodyTruncated': body_truncated,
-              'url': release.get('html_url') or release.get('url') or '',
-            }
+              body, body_length, body_truncated = compact_text(
+                  release.get('body'), RELEASE_BODY_LIMIT
+              )
+              return {
+                  'name': release.get('name') or release.get('tag_name') or '',
+                  'tagName': release.get('tag_name') or release.get('tagName') or '',
+                  'publishedAt': release.get('published_at') or release.get('publishedAt') or '',
+                  'body': body,
+                  'bodyLength': body_length,
+                  'bodyTruncated': body_truncated,
+                  'url': release.get('html_url') or release.get('url') or '',
+              }
 
           def compact_issue(issue):
-            body, body_length, body_truncated = compact_text(
-              issue.get('body'), ISSUE_BODY_LIMIT
-            )
-            comments = issue.get('comments', 0)
-            if isinstance(comments, dict):
-              comments = comments.get('totalCount', 0)
-            return {
-              'number': issue.get('number'),
-              'title': issue.get('title') or '',
-              'body': body,
-              'bodyLength': body_length,
-              'bodyTruncated': body_truncated,
-              'createdAt': issue.get('createdAt') or issue.get('created_at') or '',
-              'comments': comments,
-              'url': issue.get('url') or '',
-            }
+              body, body_length, body_truncated = compact_text(
+                  issue.get('body'), ISSUE_BODY_LIMIT
+              )
+              comments = issue.get('comments', 0)
+              if isinstance(comments, dict):
+                  comments = comments.get('totalCount', 0)
+              return {
+                  'number': issue.get('number'),
+                  'title': issue.get('title') or '',
+                  'body': body,
+                  'bodyLength': body_length,
+                  'bodyTruncated': body_truncated,
+                  'createdAt': issue.get('createdAt') or issue.get('created_at') or '',
+                  'comments': comments,
+                  'url': issue.get('url') or '',
+              }
 
           prefetch_dir = os.environ['PREFETCH_DIR']
           data_files = sorted(glob.glob(os.path.join(prefetch_dir, '*.json')))
           all_repos = []
-          for f in data_files:
+          for path in data_files:
               try:
-                  with open(f) as fp:
+                  with open(path) as fp:
                       raw_repo = json.load(fp)
                       releases = [
                           compact_release(release)
@@ -222,8 +219,8 @@ jobs:
           total = 24
           scanned = len(all_repos)
           items_found = sum(
-              len(r.get('releases', [])) + len(r.get('issues', []))
-              for r in all_repos
+              len(repo.get('releases', [])) + len(repo.get('issues', []))
+              for repo in all_repos
           )
 
           summary_repos = []
@@ -282,10 +279,10 @@ jobs:
           summary_path = os.path.join(prefetch_dir, 'daily-digest-summary.json')
           metrics_path = os.path.join(prefetch_dir, 'daily-digest-metrics.json')
 
-          with open(cache_path, 'w') as f:
-              json.dump(cache, f)
-          with open(summary_path, 'w') as f:
-              json.dump(summary, f)
+          with open(cache_path, 'w') as fp:
+              json.dump(cache, fp)
+          with open(summary_path, 'w') as fp:
+              json.dump(summary, fp)
 
           metrics['cache_bytes'] = os.path.getsize(cache_path)
           metrics['summary_bytes'] = os.path.getsize(summary_path)
@@ -295,8 +292,8 @@ jobs:
               if repo['releaseCount'] or repo['issueCount']
           )
 
-          with open(metrics_path, 'w') as f:
-              json.dump(metrics, f)
+          with open(metrics_path, 'w') as fp:
+              json.dump(metrics, fp)
 
           print(
               f"Scanned {scanned}/{total} repos, {len(failures)} failed, "
@@ -322,12 +319,26 @@ steps:
 
 # daily-digest
 
-Create a daily high-signal digest from pre-fetched GitHub repository data.
+Create a daily high-signal digest from public GitHub repositories only.
 Do not use non-GitHub sources.
+Use the pre-fetched GitHub repository data in this workflow first. Use GitHub
+MCP tools only for targeted follow-up on a small number of shortlisted items
+when the cached data is insufficient.
+Do not fetch `api.github.com`, GitHub HTML pages, or other GitHub-hosted
+content over raw HTTP when the same data is available through GitHub tools.
+
+Research recent activity from these sources only:
+
+1. GitHub Releases
+2. GitHub Packages (especially GHCR image/package updates)
+3. GitHub Issues
 
 The `prefetch-data` job has already fetched releases and issues from all
-24 monitored repositories for the last 24 hours. The data is stored in
-`${{ github.workspace }}/.aw/prefetch/daily-digest-cache.json`.
+24 monitored repositories for the last 24 hours. The data is stored in:
+
+- `${{ github.workspace }}/.aw/prefetch/daily-digest-metrics.json`
+- `${{ github.workspace }}/.aw/prefetch/daily-digest-summary.json`
+- `${{ github.workspace }}/.aw/prefetch/daily-digest-cache.json`
 
 Start with the compact summary and coverage metrics, not the full cache:
 
@@ -336,122 +347,91 @@ cat "${{ github.workspace }}/.aw/prefetch/daily-digest-metrics.json"
 cat "${{ github.workspace }}/.aw/prefetch/daily-digest-summary.json"
 ```
 
-Only inspect `${{ github.workspace }}/.aw/prefetch/daily-digest-cache.json` selectively with
-`python3` after you have identified promising candidates from the summary.
-Do not dump the full cache to the conversation unless `cache_bytes` is below
-120000. Prefer targeted extraction by repository, item type, and index.
+Only inspect `${{ github.workspace }}/.aw/prefetch/daily-digest-cache.json`
+selectively with `python3` after you have identified promising candidates from
+the summary. Do not dump the full cache into the conversation unless
+`cache_bytes` is below `120000`. Prefer targeted extraction by repository,
+item type, and index.
 
-The summary JSON has this structure:
+Fetch efficiency and API hygiene:
 
-```json
-{
-  "scanned": <int>,
-  "total": 24,
-  "failed": ["owner/repo", ...],
-  "itemsFound": <int>,
-  "repos": [
-    {
-      "repo": "owner/repo",
-      "category": <1|2|3|4>,
-      "releaseCount": <int>,
-      "issueCount": <int>,
-      "releases": [ { "name", "tagName", "publishedAt", "url", "bodyLength", "bodyTruncated" }, ... ],
-      "issues":   [ { "number", "title", "createdAt", "comments", "url", "bodyLength", "bodyTruncated" }, ... ]
-    },
-    ...
-  ]
-}
-```
+- Prefer metadata-first retrieval and only fetch expanded content when a
+  release or issue passes the telemetry relevance gate.
+- If cached metadata is enough to reject an item, reject it without further
+  expansion.
+- If a targeted GitHub MCP request fails for a shortlisted item, skip that item
+  and continue; do not fall back to raw HTTP requests against GitHub APIs.
+- When re-checking release metadata, use conditional requests with
+  `If-None-Match` (ETag) and `If-Modified-Since` to avoid repeated full
+  payload downloads.
+- If the API returns `304 Not Modified`, skip that repo for release
+  content processing in this run.
+Apply strict editorial judgment: prefer depth over breadth. It is better
+to surface two excellent updates than ten weak ones.
 
-The cache JSON has this structure:
+Use the last 24 hours of activity and evaluate updates only from this
+shortlist of public repositories.
 
-```json
-{
-  "scanned": <int>,
-  "total": 24,
-  "failed": ["owner/repo", ...],
-  "repos": [
-    {
-      "repo": "owner/repo",
-      "category": <1|2|3|4>,
-      "releases": [ { "name", "tagName", "publishedAt", "body", "bodyLength", "bodyTruncated", "url" }, ... ],
-      "issues":   [ { "number", "title", "body", "bodyLength", "bodyTruncated", "createdAt", "comments", "url" }, ... ]
-    },
-    ...
-  ]
-}
-```
+**Focus topics and repository shortlist**
 
-Also read the coverage metrics:
+1. **Observing AI agents** (monitoring, snooping, eBPF for agent
+   workloads)
+  - cilium/tetragon
+  - pixie-io/pixie
+  - Arize-ai/phoenix
+  - langfuse/langfuse
+  - inspektor-gadget/inspektor-gadget
+  - iovisor/bcc
+  - bpftrace/bpftrace
+  - open-telemetry/opentelemetry-ebpf-instrumentation
+  - open-telemetry/opentelemetry-ebpf-profiler
+  - alex-ilgayev/MCPSpy
 
-```
-cat "${{ github.workspace }}/.aw/prefetch/daily-digest-metrics.json"
-```
+2. **Telemetry updates for coding agents** (GitHub Copilot, Claude Code,
+   Gemini CLI, OpenAI Codex, OpenClaw)
+  - microsoft/vscode-copilot-chat
+  - github/copilot-cli
+  - anthropics/claude-code
+  - google-gemini/gemini-cli
+  - openai/codex
+  - openclaw/openclaw
 
-The metrics JSON includes `cache_bytes`, `summary_bytes`, and
-`repos_with_activity`. Use those values to decide how aggressively to narrow
-the candidate set before reading item bodies.
+3. **OpenTelemetry standards** (specification and Semantic Conventions
+   for GenAI)
+  - open-telemetry/opentelemetry-specification
+  - open-telemetry/semantic-conventions
+  - open-telemetry/opentelemetry-collector-contrib
+  - open-telemetry/opentelemetry-collector
 
-Do not use GitHub MCP tools to re-fetch releases or issues that are already in
-the cache. You may use GitHub MCP tools only to look up additional context on a
-specific item (for example, fetching a release body that was truncated, or
-verifying a package update on GHCR).
-
-Workflow efficiency requirements:
-
-- Keep prompt context compact. Read the summary first, then extract only the
-  few candidate bodies you actually need from the cache.
-- Treat `bodyTruncated: true` as a signal to use GitHub MCP only after the item
-  already looks promising from the summary metadata.
-- Avoid broad repo-by-repo re-analysis. Narrow to likely candidates before
-  reading bodies.
-- If `items_found` is `0`, call `noop` immediately with the coverage footer.
-
-Apply strict editorial judgment: prefer depth over breadth. It is better to
-surface two excellent updates than ten weak ones.
-
-**Focus topics and repository categories**
-
-1. **Observing AI agents** (category 1): cilium/tetragon, pixie-io/pixie,
-   Arize-ai/phoenix, langfuse/langfuse, inspektor-gadget/inspektor-gadget,
-   iovisor/bcc, bpftrace/bpftrace, open-telemetry/opentelemetry-ebpf-instrumentation,
-   open-telemetry/opentelemetry-ebpf-profiler, alex-ilgayev/MCPSpy
-
-2. **Telemetry updates for coding agents** (category 2): microsoft/vscode-copilot-chat,
-   github/copilot-cli, anthropics/claude-code, google-gemini/gemini-cli,
-   openai/codex, openclaw/openclaw
-
-3. **OpenTelemetry standards** (category 3): open-telemetry/opentelemetry-specification,
-   open-telemetry/semantic-conventions, open-telemetry/opentelemetry-collector-contrib,
-   open-telemetry/opentelemetry-collector
-
-4. **Observability Platform Tools** (category 4): grafana/docker-otel-lgtm,
-   grafana/oats, grafana/mcp-grafana, grafana/grafanactl
+4. **Observability Platform Tools**
+  - grafana/docker-otel-lgtm
+  - grafana/oats
+  - grafana/mcp-grafana
+  - grafana/grafanactl
 
 Scoring and filtering:
 
-- Drop any candidate that is not clearly relevant to one of the four topics.
+- Drop any candidate that is not clearly relevant to one of the four
+  topics.
 - Assign each item to exactly one best-fit topic.
-- Hard gate for Releases and Issues: include an item if and only if it has
-  direct telemetry implications for coding agents (for example: instrumentation/
-  tracing, metrics dimensions, span schema changes, collector/exporter behavior,
-  agent runtime observability, or GenAI semantic convention changes).
-- Exclude non-telemetry releases/issues even if they are popular or highly discussed.
+- Hard gate for Releases and Issues: include an item if and only if it
+  has direct telemetry implications for coding agents (for example:
+  instrumentation/tracing, metrics dimensions, span schema changes,
+  collector/exporter behavior, agent runtime observability, or GenAI
+  semantic convention changes).
+- Exclude non-telemetry releases/issues even if they are popular or
+  highly discussed.
 - Compute a GitHub signal `Score` from 0-100 using:
   - telemetry specificity and operational impact for coding agents (50%),
   - impact of change (breaking/spec/runtime impact) (30%),
-  - discussion intensity and adoption relevance for enterprise teams (20%).
+  - discussion intensity and adoption relevance for enterprise teams
+    (20%).
 - Keep only items with Score >= 75.
 
 Output rules:
 
-- Read `dry_run` from the workflow input: `${{ inputs.dry_run }}`.
-- Emit exactly one of these flows:
-  - `dry_run=true`: call `noop` once with the qualifying items and scores, then stop.
-  - no qualifying items: call `noop` once with a concise explanation and the coverage footer, then stop.
-  - qualifying items found: call `create_issue` exactly once, then call `add_comment` exactly once, then stop.
-- Never call `noop` in the same run as `create_issue`.
-- Never call `create_issue` more than once.
+- If no items qualify after filtering, do nothing and do not create an
+  issue.
 - Otherwise create one issue titled "GitHub Digest - <date>".
 - Use one Markdown table per topic that has qualifying items.
 - Keep the same table format for each row:
@@ -462,34 +442,24 @@ Output rules:
   - Summary
   - Value Proposition
       - What does it enable people to do?
-      - What's the value in terms of time cost and quality? Quantify where possible.
+      - What's the value in terms of time cost and quality? Quantify it where possible e.g. startup time reduced from 60s to 5s
   - Suggested actions to get the proposed value
 - Use this exact table structure for each topic section:
 
   | Title | Repository | Score | Comments | Summary | Value Proposition | Suggested actions to get the proposed value |
   | --- | --- | --- | --- | --- | --- | --- |
   | [Example: GenAI semconv adds agent tool latency dimensions](https://github.com/open-telemetry/semantic-conventions/issues/0000) | open-telemetry/semantic-conventions | 88 | 12 | Adds explicit dimensions for coding-agent tool latency to improve cross-vendor observability. | Enables cross-vendor tool latency comparison; reduces root-cause time from ~45 min to ~10 min. | 1) Update collector transforms and dashboards to new dimensions. 2) Add SLO panels for p95 tool latency. 3) Validate cardinality impact in staging. |
+  | Example: New GHCR image release for eBPF observability agent | cilium/tetragon | 82 | 5 | New release of Tetragon with improved eBPF-based observability features for AI agent workloads. | Enables deeper visibility into AI agent behavior with lower overhead; reduces troubleshooting time by ~30%. | 1) Test new release in staging. 2) Update production deployment to new version. 3) Monitor for improvements in observability and troubleshooting efficiency. |
 
-- `Comments` should reflect discussion count for issues and best available
-  discussion count for releases/packages (use 0 when none).
-- Keep `Summary` and `Value Proposition` cells to 1–2 sentences each. Both
-  columns must be written to roughly the same length so the table renders at a
-  consistent column width on mobile without horizontal scrolling.
-- Append a coverage footer at the bottom of the issue body using this format:
-
-  ---
-  *Coverage: Scanned <scanned> of <total> repositories.*
-  *Failed: <comma-separated list of failed repos, or "none">.*
-
-- When publishing, call the safe-output tools directly by name: `create_issue`,
-  `add_comment`, and `noop`. Do not refer to them through a `functions.` namespace
-  or any other wrapper.
-- For the qualifying-items flow, use a temporary issue id so the follow-up
-  comment can target the issue created earlier in the same run.
-- Call `create_issue` with `temporary_id: "aw_digest_issue"` (or another
-  `aw_`-prefixed id you choose for this run).
-- Then call `add_comment` with `item_number: "aw_digest_issue"` and a body that
-  contains exactly this plain-text mention: @doughgle
-- Do not use `issue_number` for `add_comment` in this workflow; the safe-output
-  schema expects `item_number`.
+- `Comments` should reflect discussion count for issues and best
+  available discussion count for releases/packages (use 0 when none).
+- Keep `Summary` and `Value Proposition` cells to 1–2 sentences each. Both columns must be written to roughly the same length so the table renders at a consistent column width on mobile without horizontal scrolling. Do not truncate meaning to match length; instead write each cell with the same level of detail and density as the other.
+- When publishing, call the safe-output tools directly by name:
+  `create_issue`, `add_comment`, and `noop`. Do not refer to them through
+  a `functions.` namespace or any other wrapper.
+- If no items qualify, call `noop` with a concise explanation instead of
+  drafting issue content.
+- After creating the issue, add exactly one issue comment containing a plain-text mention: @doughgle
+- Because this workflow runs on schedule/dispatch (no triggering issue), for `add_comment` you MUST set `issue_number` to the issue number returned by the same-run `create_issue` output.
+- Do NOT provide `item_number` for this workflow.
 - Do not wrap the mention in quotes, backticks, or code blocks.
