@@ -26,10 +26,11 @@ safe-outputs:
 
 Create a daily high-signal digest from public GitHub repositories only.
 Do not use non-GitHub sources.
-Use GitHub MCP tools for GitHub repository data collection.
+Use GitHub tooling only. Prefer `bash` with the `gh` CLI for bulk data
+collection and use GitHub MCP tools only for targeted follow-up on a small
+number of shortlisted candidates.
 Do not fetch `api.github.com`, GitHub HTML pages, or other GitHub-hosted
-content over raw HTTP when the same data is available through GitHub MCP
-tools.
+content over raw HTTP when the same data is available through GitHub tools.
 
 Research recent activity from these sources only:
 
@@ -39,20 +40,45 @@ Research recent activity from these sources only:
 
 Fetch efficiency and API hygiene:
 
+- Do not call GitHub MCP `list_issues`, `list_releases`, or similar bulk
+  enumeration tools repo-by-repo across the full 24-repo shortlist. That
+  fan-out is too slow and may time out.
+- First do one compact prefetch pass with `bash` and the `gh` CLI across the
+  shortlist. Write the results to `/tmp/daily-digest-cache.json` and a smaller
+  `/tmp/daily-digest-summary.json`.
+- In the prefetch pass, collect only compact metadata first:
+  - releases: name/tag/date/url/body length
+  - issues: number/title/date/comment count/url/body length
+  - failures: repositories whose query fails or times out
+- Wrap each `gh` query with a short timeout and continue on failure. Record the
+  failed repo and move on instead of retrying repeatedly.
+- Prefer metadata-first retrieval and only fetch expanded issue or release
+  bodies after a candidate passes the telemetry relevance gate.
+- Use GitHub MCP tools only after shortlisting, for example to inspect one
+  promising truncated issue or release in more detail.
+- Do not fall back to raw HTTP requests against GitHub APIs.
 - When re-checking release metadata, use conditional requests with
   `If-None-Match` (ETag) and `If-Modified-Since` to avoid repeated full
   payload downloads.
 - If the API returns `304 Not Modified`, skip that repo for release
   content processing in this run.
-- Prefer metadata-first retrieval and only fetch expanded content when a
-  release or issue passes the telemetry relevance gate.
-- If a GitHub MCP request fails for a repository, skip that repository and
-  continue; do not fall back to raw HTTP requests against GitHub APIs.
 Apply strict editorial judgment: prefer depth over breadth. It is better
 to surface two excellent updates than ten weak ones.
 
 Use the last 24 hours of activity and evaluate updates only from this
 shortlist of public repositories.
+
+Recommended execution sequence:
+
+1. Use `bash` plus `gh` to prefetch compact release and issue metadata for all
+   shortlisted repositories into local JSON files under `/tmp`.
+2. Read the compact summary first and identify only the few candidates that may
+   clear the telemetry relevance gate and `Score >= 75`.
+3. Use targeted extraction from the local cache to inspect full bodies for just
+   those shortlisted items.
+4. Use GitHub MCP only if one shortlisted item still needs extra GitHub context.
+5. If no items qualify, call `noop` with a concise explanation instead of
+   drafting issue content.
 
 **Focus topics and repository shortlist**
 
