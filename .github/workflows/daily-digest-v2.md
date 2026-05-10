@@ -452,7 +452,7 @@ Output rules:
   - qualifying items found: call `create_issue` exactly once, then call `add_comment` exactly once, then stop.
 - Never call `noop` in the same run as `create_issue`.
 - Never call `create_issue` more than once.
-- Otherwise create one issue titled "GitHub Digest - <date>".
+- Otherwise create one issue titled "Daily Digest - <date>".
 - Use one Markdown table per topic that has qualifying items.
 - Keep the same table format for each row:
   - Title (linked)
