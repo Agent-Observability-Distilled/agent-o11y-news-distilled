@@ -432,7 +432,7 @@ Output rules:
 
 - If no items qualify after filtering, do nothing and do not create an
   issue.
-- Otherwise create one issue titled "GitHub Digest - <date>".
+- Otherwise create one issue titled "Daily Digest - <date>".
 - Use one Markdown table per topic that has qualifying items.
 - Keep the same table format for each row:
   - Title (linked)
