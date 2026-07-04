@@ -8,7 +8,7 @@ permissions:
   pull-requests: read
 engine:
   id: copilot
-  model: haiku
+  model: gpt-5.4
 network: defaults
 tools:
   bash:
