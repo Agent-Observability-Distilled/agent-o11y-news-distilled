@@ -13,7 +13,7 @@ permissions:
   pull-requests: read
 engine:
   id: copilot
-  model: gpt-5.4
+  model: gpt-4o-mini
 network: defaults
 tools:
   bash:
