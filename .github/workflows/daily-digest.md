@@ -460,6 +460,6 @@ Output rules:
 - If no items qualify, call `noop` with a concise explanation instead of
   drafting issue content.
 - After creating the issue, add exactly one issue comment containing a plain-text mention: @doughgle
-- Because this workflow runs on schedule/dispatch (no triggering issue), for `add_comment` you MUST set `issue_number` to the issue number returned by the same-run `create_issue` output.
-- Do NOT provide `item_number` for this workflow.
+- Because this workflow runs on schedule/dispatch (no triggering issue), call `add_comment` with `item_number` set to `"aw_digest_issue"` and a body that contains exactly the plain-text mention.
+- Call `create_issue` with `temporary_id: "aw_digest_issue"` so the follow-up comment can target the issue.
 - Do not wrap the mention in quotes, backticks, or code blocks.
