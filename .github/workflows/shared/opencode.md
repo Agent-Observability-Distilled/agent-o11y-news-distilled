@@ -20,7 +20,6 @@ engine:
     - role: api-key
       secret: OPENCODE_GO_API_KEY
   behaviors:
-    secret-strategy: universal-llm-consumer
     supported-env-var-keys:
       - OPENAI_API_KEY
       - OPENAI_BASE_URL
@@ -78,7 +77,6 @@ engine:
       step-name: Execute OpenCode CLI
       model-env-var: OPENCODE_MODEL
       write-timestamp: true
-      provider-env-mode: universal-llm-consumer
       env:
         XDG_DATA_HOME: /tmp/opencode-data
         OPENAI_BASE_URL: "https://opencode.ai/zen/go/v1"
@@ -91,9 +89,17 @@ engine:
       const log = message => process.stderr.write(`[opencode-harness] ${message}\n`);
 
       try {
-        if (!process.env.OPENAI_API_KEY && process.env.SECRET_OPENCODE_GO_API_KEY) {
+        if (process.env.SECRET_OPENCODE_GO_API_KEY) {
           process.env.OPENAI_API_KEY = process.env.SECRET_OPENCODE_GO_API_KEY;
+          log("OPENAI_API_KEY set from SECRET_OPENCODE_GO_API_KEY");
+        } else if (!process.env.OPENAI_API_KEY) {
+          throw new Error("OPENAI_API_KEY is not set and SECRET_OPENCODE_GO_API_KEY is not available");
         }
+
+        if (!process.env.OPENAI_BASE_URL) {
+          process.env.OPENAI_BASE_URL = "https://opencode.ai/zen/go/v1";
+        }
+        log("OPENAI_BASE_URL=" + process.env.OPENAI_BASE_URL);
 
         const promptPath = process.env.GH_AW_PROMPT;
         if (!promptPath) throw new Error("GH_AW_PROMPT is not set");
