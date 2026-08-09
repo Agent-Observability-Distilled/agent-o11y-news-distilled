@@ -80,6 +80,7 @@ engine:
       env:
         XDG_DATA_HOME: /tmp/opencode-data
         OPENAI_BASE_URL: "https://opencode.ai/zen/go/v1"
+        OPENAI_API_KEY: ${{ secrets.OPENCODE_GO_API_KEY }}
     harness-script: |
       const { spawnSync } = require("child_process");
       const { readFileSync } = require("fs");
