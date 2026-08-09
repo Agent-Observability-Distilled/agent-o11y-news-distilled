@@ -6,9 +6,9 @@ permissions:
   contents: read
   issues: none
   pull-requests: read
+model: gpt-4o-mini
 engine:
   id: copilot
-  model: gpt-4o-mini
 network: defaults
 tools:
   bash:
