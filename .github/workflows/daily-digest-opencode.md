@@ -11,13 +11,11 @@ permissions:
   contents: read
   issues: none
   pull-requests: read
-engine: opencode
+engine:
+  id: opencode
+model: openai/deepseek-v4-pro
 imports:
   - shared/opencode.md
-engine.env:
-  OPENCODE_MODEL: "openai/deepseek-v4-pro"
-  OPENAI_API_KEY: ${{ secrets.OPENCODE_GO_API_KEY }}
-  OPENAI_BASE_URL: "https://opencode.ai/zen/go/v1"
 tools:
   bash:
     - cat
