@@ -97,8 +97,9 @@ engine:
 
         const promptPath = process.env.GH_AW_PROMPT;
         if (!promptPath) throw new Error("GH_AW_PROMPT is not set");
+        const prompt = readFileSync(promptPath, "utf8");
 
-        const result = spawnSync("opencode", [...commandArgs, promptPath], {
+        const result = spawnSync("opencode", [...commandArgs, prompt], {
           encoding: "utf8",
           cwd: process.env.GITHUB_WORKSPACE,
           env: process.env,
