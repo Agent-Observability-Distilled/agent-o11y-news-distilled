@@ -488,8 +488,3 @@ Output rules:
   comment can target the issue created earlier in the same run.
 - Call `create_issue` with `temporary_id: "aw_digest_issue"` (or another
   `aw_`-prefixed id you choose for this run).
-- Then call `add_comment` with `item_number: "aw_digest_issue"` and a body that
-  contains exactly this plain-text mention: @doughgle
-- Do not use `issue_number` for `add_comment` in this workflow; the safe-output
-  schema expects `item_number`.
-- Do not wrap the mention in quotes, backticks, or code blocks.
