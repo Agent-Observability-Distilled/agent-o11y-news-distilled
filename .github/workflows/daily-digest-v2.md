@@ -461,7 +461,4 @@ Output rules:
 - When publishing, call the safe-output tools directly by name: `create_issue`,
   `add_comment`, and `noop`. Do not refer to them through a `functions.` namespace
   or any other wrapper.
-- For the qualifying-items flow, use a temporary issue id so the follow-up
-  comment can target the issue created earlier in the same run.
-- Call `create_issue` with `temporary_id: "aw_digest_issue"` (or another
-  `aw_`-prefixed id you choose for this run).
+
