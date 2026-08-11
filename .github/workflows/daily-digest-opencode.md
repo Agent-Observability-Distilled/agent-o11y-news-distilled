@@ -44,7 +44,7 @@ jobs:
       - name: Set time window
         run: echo "SINCE=$(date -u -d '24 hours ago' '+%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_ENV"
 
-      - name: Fetch Category 1 - Observing AI agents (10 repos)
+      - name: Fetch Category 1 - Observing AI agents (7 repos)
         run: |
           SEARCH_DATE=$(date -u -d '24 hours ago' '+%Y-%m-%d')
           for REPO in \
@@ -52,9 +52,6 @@ jobs:
             "pixie-io/pixie" \
             "Arize-ai/phoenix" \
             "langfuse/langfuse" \
-            "inspektor-gadget/inspektor-gadget" \
-            "iovisor/bcc" \
-            "bpftrace/bpftrace" \
             "open-telemetry/opentelemetry-ebpf-instrumentation" \
             "open-telemetry/opentelemetry-ebpf-profiler" \
             "alex-ilgayev/MCPSpy"
@@ -72,16 +69,20 @@ jobs:
               || echo "FAILED:${REPO}" >> "${PREFETCH_DIR}/failures.log"
           done
 
-      - name: Fetch Category 2 - Telemetry for coding agents (6 repos)
+      - name: Fetch Category 2 - Telemetry for coding agents (10 repos)
         run: |
           SEARCH_DATE=$(date -u -d '24 hours ago' '+%Y-%m-%d')
           for REPO in \
             "microsoft/vscode-copilot-chat" \
             "github/copilot-cli" \
             "anthropics/claude-code" \
-            "google-gemini/gemini-cli" \
             "openai/codex" \
-            "openclaw/openclaw"
+            "openclaw/openclaw" \
+            "anomalyco/opencode" \
+            "Kilo-Org/kilocode" \
+            "earendil-works/pi" \
+            "google-antigravity/antigravity-cli" \
+            "NousResearch/hermes-agent"
           do
             OUT="${PREFETCH_DIR}/$(echo "${REPO}" | tr '/' '_').json"
             RELEASES=$(gh api "repos/${REPO}/releases?per_page=20" \
@@ -96,14 +97,15 @@ jobs:
               || echo "FAILED:${REPO}" >> "${PREFETCH_DIR}/failures.log"
           done
 
-      - name: Fetch Category 3 - OpenTelemetry standards (4 repos)
+      - name: Fetch Category 3 - OpenTelemetry standards (5 repos)
         run: |
           SEARCH_DATE=$(date -u -d '24 hours ago' '+%Y-%m-%d')
           for REPO in \
             "open-telemetry/opentelemetry-specification" \
             "open-telemetry/semantic-conventions" \
             "open-telemetry/opentelemetry-collector-contrib" \
-            "open-telemetry/opentelemetry-collector"
+            "open-telemetry/opentelemetry-collector" \
+            "Arize-ai/openinference"
           do
             OUT="${PREFETCH_DIR}/$(echo "${REPO}" | tr '/' '_').json"
             RELEASES=$(gh api "repos/${REPO}/releases?per_page=20" \
@@ -114,28 +116,6 @@ jobs:
               --json number,title,body,createdAt,comments,url 2>/dev/null) \
               || ISSUES="[]"
             printf '%s' "{\"repo\":\"${REPO}\",\"category\":3,\"releases\":${RELEASES},\"issues\":${ISSUES}}" \
-              > "${OUT}" \
-              || echo "FAILED:${REPO}" >> "${PREFETCH_DIR}/failures.log"
-          done
-
-      - name: Fetch Category 4 - Observability Platform Tools (4 repos)
-        run: |
-          SEARCH_DATE=$(date -u -d '24 hours ago' '+%Y-%m-%d')
-          for REPO in \
-            "grafana/docker-otel-lgtm" \
-            "grafana/oats" \
-            "grafana/mcp-grafana" \
-            "grafana/grafanactl"
-          do
-            OUT="${PREFETCH_DIR}/$(echo "${REPO}" | tr '/' '_').json"
-            RELEASES=$(gh api "repos/${REPO}/releases?per_page=20" \
-              --jq "[.[] | select(.published_at >= \"${SINCE}\")]" 2>/dev/null) \
-              || RELEASES="[]"
-            ISSUES=$(gh issue list -R "${REPO}" --state all \
-              --search "created:>${SEARCH_DATE}" --limit 30 \
-              --json number,title,body,createdAt,comments,url 2>/dev/null) \
-              || ISSUES="[]"
-            printf '%s' "{\"repo\":\"${REPO}\",\"category\":4,\"releases\":${RELEASES},\"issues\":${ISSUES}}" \
               > "${OUT}" \
               || echo "FAILED:${REPO}" >> "${PREFETCH_DIR}/failures.log"
           done
@@ -222,7 +202,7 @@ jobs:
                       if line.startswith('FAILED:'):
                           failures.append(line[7:])
 
-          total = 24
+          total = 22
           scanned = len(all_repos)
           items_found = sum(
               len(repo.get('releases', [])) + len(repo.get('issues', []))
@@ -340,7 +320,7 @@ Research recent activity from these sources only:
 3. GitHub Issues
 
 The `prefetch-data` job has already fetched releases and issues from all
-24 monitored repositories for the last 24 hours. The data is stored in:
+22 monitored repositories for the last 24 hours. The data is stored in:
 
 - `${{ github.workspace }}/.aw/prefetch/daily-digest-metrics.json`
 - `${{ github.workspace }}/.aw/prefetch/daily-digest-summary.json`
@@ -386,21 +366,22 @@ shortlist of public repositories.
   - pixie-io/pixie
   - Arize-ai/phoenix
   - langfuse/langfuse
-  - inspektor-gadget/inspektor-gadget
-  - iovisor/bcc
-  - bpftrace/bpftrace
   - open-telemetry/opentelemetry-ebpf-instrumentation
   - open-telemetry/opentelemetry-ebpf-profiler
   - alex-ilgayev/MCPSpy
 
-2. **Telemetry updates for coding agents** (GitHub Copilot, Claude Code,
-   Gemini CLI, OpenAI Codex, OpenClaw)
+2. **Telemetry updates for coding agents** (Copilot, Claude Code,
+   OpenAI Codex, OpenClaw, OpenCode, Kilo Code, Pi, Antigravity, Hermes)
   - microsoft/vscode-copilot-chat
   - github/copilot-cli
   - anthropics/claude-code
-  - google-gemini/gemini-cli
   - openai/codex
   - openclaw/openclaw
+  - anomalyco/opencode
+  - Kilo-Org/kilocode
+  - earendil-works/pi
+  - google-antigravity/antigravity-cli
+  - NousResearch/hermes-agent
 
 3. **OpenTelemetry standards** (specification and Semantic Conventions
    for GenAI)
@@ -408,16 +389,11 @@ shortlist of public repositories.
   - open-telemetry/semantic-conventions
   - open-telemetry/opentelemetry-collector-contrib
   - open-telemetry/opentelemetry-collector
-
-4. **Observability Platform Tools**
-  - grafana/docker-otel-lgtm
-  - grafana/oats
-  - grafana/mcp-grafana
-  - grafana/grafanactl
+  - Arize-ai/openinference
 
 Scoring and filtering:
 
-- Drop any candidate that is not clearly relevant to one of the four
+- Drop any candidate that is not clearly relevant to one of the three
   topics.
 - Assign each item to exactly one best-fit topic.
 - Hard gate for Releases and Issues: include an item if and only if it
